@@ -10,6 +10,7 @@ require("dotenv").config();
 app.use(
   cors({
     origin: "*",
+    credentials: true,
   })
 );
 app.use(express.json());
@@ -44,7 +45,6 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
-
 
 async function run() {
   try {
@@ -94,7 +94,7 @@ async function run() {
     // post user
     app.post(`/user/:email`, async (req, res) => {
       const { email } = req?.params;
-      const { userData } = req?.body;
+      const {userData}  = req?.body;
 
       const existingUser = await userCollection.findOne({ email });
       if (existingUser) {
@@ -142,7 +142,7 @@ async function run() {
     });
 
     app.get("/products", async (req, res) => {
-      const { title, category, sort = "asc", page = 1, limit = 12 } = req.query;
+      const { title, category, sort = "asc", page = 1, limit = 8 } = req.query;
 
       try {
         const pageNumber = Math.max(Number(page), 1);
@@ -374,6 +374,12 @@ async function run() {
     app.delete("/card/:email/:productId", async (req, res) => {
       const { email, productId } = req.params;
 
+      if (!email || !productId) {
+        return res.json({ message: "email or product id not found" });
+      }
+
+      console.log({ email, productId });
+
       try {
         // Update the cart by removing the specified product
         const result = await cardCollection.updateOne(
@@ -381,11 +387,13 @@ async function run() {
           { $pull: { items: { productId } } }
         );
 
-        if (result.modifiedCount === 0) {
-          return res.status(404).json({ message: "Item not found in cart" });
-        }
+        console.log(result);
 
-        res.status(200).json({ message: "Item removed from cart" });
+        // if (result.modifiedCount === 0) {
+        //   return res.status(404).json({ message: "Item not found in cart" });
+        // }
+
+        res.status(200).send(result);
       } catch (error) {
         console.error("Error removing item from cart:", error);
         res.status(500).json({ message: "Server error" });
